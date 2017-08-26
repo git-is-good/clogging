@@ -26,7 +26,7 @@ test: $(OBJS) $(MEMTOOLSOBJS)
 	gcc -o $@ $^
 
 clean:
-	rm -rf *~ $(TARGETS) $(OBJS) $(MEMTOOLSOBJS)
+	rm -rf *~ $(TARGETS) $(OBJS) $(MEMTOOLSOBJS) *.log
 
 
 

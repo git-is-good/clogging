@@ -5,20 +5,28 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+/* a hierachical logger */
+
 /* logger naming convention:
  * nom[.nom]+               
  * where nom is [_a-zA-Z][_a-zA-Z0-9]* */
 
-#define logging_debug       logging_debug_do
-#define logging_info        logging_info_do
-#define logging_warning     logging_warning_do
-#define logging_error       logging_error_do
+#define logging_debug(lg, ...)   logging_log(lg, logger_level_debug, ##__VA_ARGS__)
+#define logging_info(lg, ...)    logging_log(lg, logger_level_info, ##__VA_ARGS__)
+#define logging_warning(lg, ...) logging_log(lg, logger_level_warning, ##__VA_ARGS__)
+#define logging_error(lg, ...)   logging_log(lg, logger_level_error, ##__VA_ARGS__)
 
 typedef const char *logger_name_t;
 
 typedef enum {
     logger_type_root,
+
+    /* an auto logger inherits attributs from its parent */
+    /* attributes are synchronized if parent or parent's attributes change */
     logger_type_auto,
+
+    /* a self logger determines attributes by itself */
+    /* its parent doesn't affect it */
     logger_type_self,
 } logger_type_t;
 

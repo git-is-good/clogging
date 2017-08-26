@@ -9,6 +9,9 @@
 #include <assert.h>
 #include <time.h>
 
+//TODO 1, ADD FILENAME PARSING TOOLS, now only relative name without ./.. can be recognized
+//TODO 2, ADD MULTITHREAD SUPPORT
+
 static logger_t root_logger;
 static HashTable *file_dict;
 const size_t init_nfile = 10;
@@ -62,9 +65,6 @@ _get_specialfd(logger_filetype_t filetype)
     }
 }
 
-//TODO here we assume filename has no . and ..
-//TODO and all relative paths
-//TODO ADD FILENAME PARSING TOOLS
 void
 logging_init(const char *filename, int is_trunc, logger_level_t default_level)
 {
@@ -312,12 +312,12 @@ _inform_subtree_output(logger_t *lg, logfile_withref_t *fwr, logfile_withref_t *
 void
 logging_set_level(logger_t *lg, logger_level_t lglevel)
 {
+    if ( lg->type != logger_type_root ) {
+        lg->type = logger_type_self;
+    }
     if ( lg->level == lglevel ) return;
 
     lg->level = lglevel;
-    if ( lg->type == logger_type_auto ){
-        lg->type = logger_type_self;
-    }
     _inform_subtree_level(lg);
     return;
 }
@@ -325,6 +325,9 @@ logging_set_level(logger_t *lg, logger_level_t lglevel)
 void
 logging_set_output(logger_t *lg, const char *filename, int is_trunc) 
 {
+    if ( lg->type != logger_type_root ){
+        lg->type = logger_type_self;
+    }
     logger_filetype_t tp = _parse_logfile_type(filename);
     logfile_withref_t *fwr;
     if ( tp != logger_filetype_normal ){

@@ -85,6 +85,7 @@ void test_output(){
     assert( a->filetype == logger_filetype_normal );
     assert( fwr1->ref_count == 2 );
     logging_set_output(a, "hel.log", 0);
+    assert( a->type == logger_type_self );
     assert( fwr1->ref_count == 1 );
 
     logfile_withref_t *fwr2 = findValueByKey(file_dict, "hel.log");
@@ -106,6 +107,7 @@ void test_output(){
     assert( a->filetype == logger_filetype_stdout );
     logging_log(a, logger_level_info, "hello from a");
     logging_log(a, logger_level_debug, "hello from a");
+    logging_debug(a, "from a macro");
     b = logging_get_logger("goo.hoo");
     assert( b->filetype == logger_filetype_stdout );
     assert( logging_get_logger(NULL)->filetype == logger_filetype_normal );
@@ -115,6 +117,20 @@ void test_output(){
 }
 #endif
 
+#define mylog_error(lg, fmt, ...) logging_error(lg, "%s:%d:%s:"fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+void demousage(){
+    logging_init("#1", 0, logger_level_debug);
+
+    logger_t *lg = logging_get_logger(NULL);
+    logging_debug(lg, "demo running");
+    logging_warning(lg, "something weild");
+
+    logger_t *faclg = logging_get_logger("facsubsystem");
+    logging_error(faclg, "%s:%d:%s:""unexpected power off", __FILE__, __LINE__, __func__);
+    mylog_error(faclg, "what is wrong");
+    logging_finalize();
+}
+
 int main(){
 #ifdef DEBUG
     logger_inplace_test();
@@ -123,6 +139,7 @@ int main(){
 #endif
 //    for ( size_t i = 0; i < 10000000; i++ ) test();
     test_basic();
+    demousage();
 }
 
 
