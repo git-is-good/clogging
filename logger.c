@@ -8,9 +8,9 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <time.h>
+#include <errno.h>
 
-//TODO 1, ADD FILENAME PARSING TOOLS, now only relative name without ./.. can be recognized
-//TODO 2, ADD MULTITHREAD SUPPORT
+//TODO ADD MULTITHREAD SUPPORT
 
 static logger_t root_logger;
 static HashTable *file_dict;
@@ -82,15 +82,18 @@ logging_init(const char *filename, int is_trunc, logger_level_t default_level)
     root_logger.len_childs = 0;
 
     root_logger.filetype = _parse_logfile_type(filename); 
-    root_logger.filename = strdup(filename);
     if ( root_logger.filetype == logger_filetype_normal ){
         const char *mode = is_trunc ? "w" : "a";
         FILE *fd = fopen(filename, mode);
         if ( !fd ) FATALERROR;
+        root_logger.filename = realpath(filename, NULL);
+        if ( !root_logger.filename ) FATALERROR;
+
         root_logger.fd = fd;
         logfile_withref_t *fwr = _create_logfile_withref(fd, 1);
-        putKeyValue(file_dict, filename, fwr);
+        putKeyValue(file_dict, root_logger.filename, fwr);
     } else {
+        root_logger.filename = strdup(filename);
         root_logger.fd = _get_specialfd(root_logger.filetype);
     }
     root_logger.level = default_level;
@@ -335,23 +338,31 @@ logging_set_output(logger_t *lg, const char *filename, int is_trunc)
     }
     logger_filetype_t tp = _parse_logfile_type(filename);
     logfile_withref_t *fwr;
+    char *realname;
+
     if ( tp != logger_filetype_normal ){
+        realname = strdup(filename);
         fwr = NULL;
         lg->fd = _get_specialfd(tp);
     } else {
         /* normal logger_filetype */
-        fwr = findValueByKey(file_dict, filename);
+        realname = realpath(filename, NULL);
+        if ( !realname && errno != ENOENT ) FATALERROR;
     
-        if ( !fwr ){
+        if ( !realname || !(fwr = findValueByKey(file_dict, realname)) ){
             /* open new file */
             const char *mode = is_trunc ? "w" : "a";
             lg->fd = fopen(filename, mode);
             if ( !lg->fd ) FATALERROR;
+            if ( !realname ) realname = realpath(filename, NULL);
+            if ( !realname ) FATALERROR;
+
             fwr = _create_logfile_withref(lg->fd, 0);
-            putKeyValue(file_dict, filename, fwr);
-        } 
+            putKeyValue(file_dict, realname, fwr);
+        } else { 
+            lg->fd = fwr->fd;
+        }
         fwr->ref_count++;
-        lg->fd = fwr->fd;
     }
 
     logfile_withref_t *oldfwr;
@@ -368,7 +379,7 @@ logging_set_output(logger_t *lg, const char *filename, int is_trunc)
     lg->filetype = tp;
     /* filename is always strduped, even if it is "#1" or "#2 */
     free(lg->filename);
-    lg->filename = strdup(filename);
+    lg->filename = realname;
     if ( !oldfwr || oldfwr->ref_count > 0 ) _inform_subtree_output(lg, fwr, oldfwr);
     return;
 }

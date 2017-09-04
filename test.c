@@ -78,8 +78,12 @@ void test_output(){
     HashTable *file_dict = logger_get_file_dict();
     assert( logging_get_logger(NULL)->filetype == logger_filetype_normal );
 
-    logfile_withref_t *fwr1 = findValueByKey(file_dict, "hello.log");
-    assert( fwr1->ref_count == 1 );
+    char *realhello_log = realpath("hello.log", NULL);
+    assert( realhello_log );
+//    logfile_withref_t *fwr1 = findValueByKey(file_dict, "hello.log");
+    logfile_withref_t *fwr1 = findValueByKey(file_dict, realhello_log);
+    free(realhello_log);
+    assert( fwr1 && fwr1->ref_count == 1 );
 
     logger_t *a = logging_get_logger("hel");
     assert( a->filetype == logger_filetype_normal );
@@ -88,7 +92,10 @@ void test_output(){
     assert( a->type == logger_type_self );
     assert( fwr1->ref_count == 1 );
 
-    logfile_withref_t *fwr2 = findValueByKey(file_dict, "hel.log");
+    char *realhel_log = realpath("hel.log", NULL);
+    assert(realhel_log);
+//    logfile_withref_t *fwr2 = findValueByKey(file_dict, "hel.log");
+    logfile_withref_t *fwr2 = findValueByKey(file_dict, realhel_log);
     assert( fwr2->ref_count == 1 );
 
     logger_t *b = logging_get_logger("hel.wor");
@@ -98,7 +105,9 @@ void test_output(){
     logging_giveup_logger(b);
     assert( fwr2->ref_count == 1 );
     logging_giveup_logger(a);
-    assert( findValueByKey(file_dict, "hel.log") == NULL );
+//    assert( findValueByKey(file_dict, "hel.log") == NULL );
+    assert( findValueByKey(file_dict, realhel_log) == NULL );
+    free(realhel_log);
     
     a = logging_get_logger("goo");
     assert( fwr1->ref_count == 2 );
