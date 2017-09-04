@@ -143,7 +143,7 @@ void demousage(){
 int main(){
 #ifdef DEBUG
     logger_inplace_test();
-    for ( size_t i = 0; i < 100000000; i++ ) test_output();
+//    for ( size_t i = 0; i < 100000000; i++ ) test_output();
     test_output();
 #endif
 //    for ( size_t i = 0; i < 10000000; i++ ) test_basic();

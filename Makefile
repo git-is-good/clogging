@@ -4,6 +4,12 @@ ifeq ($(DEBUG), 1)
 	BUILDFLAGS += -g -DDEBUG
 endif
 
+# in logger.c, flockfile() is used to support
+# multithread
+ifeq ($(MULTITHREAD), 1)
+	BUILDFLAGS += -DMULTITHREAD_LOGGING
+endif
+
 # $(MEMTOOLSDIR)
 MEMTOOLSDIR   := memtools
 MEMTOOLSHEADS := $(MEMTOOLSDIR)/memcheck.h $(MEMTOOLSDIR)/hashtable_memcheck.h $(MEMTOOLSDIR)/fatalerror.h

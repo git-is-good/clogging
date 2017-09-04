@@ -10,8 +10,6 @@
 #include <time.h>
 #include <errno.h>
 
-//TODO ADD MULTITHREAD SUPPORT
-
 static logger_t root_logger;
 static HashTable *file_dict;
 const size_t init_nfile = 10;
@@ -398,10 +396,16 @@ logging_vlog(logger_t *lg, logging_event_level_t elevel, const char *msg, va_lis
         char buf[128];
         time_t t = time(NULL);
         strftime(buf, 128, "%F:%T", localtime(&t));
+#ifdef MULTITHREAD_LOGGING
+        flockfile(lg->fd);
+#endif
         fprintf(lg->fd, "%s:%s:%s: ", buf, lg->name, logger_level_msg[elevel]);
         vfprintf(lg->fd, msg, va);
         fprintf(lg->fd, "\n");
         fflush(lg->fd);
+#ifdef MULTITHREAD_LOGGING
+        funlockfile(lg->fd);
+#endif
     }
 }
 
