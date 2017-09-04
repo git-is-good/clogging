@@ -70,7 +70,7 @@ logging_init(const char *filename, int is_trunc, logger_level_t default_level)
 {
     file_dict = createHashTable(init_nfile);
 
-    root_logger.name = "(root)";
+    root_logger.name = strdup("(root)");
     root_logger.type = logger_type_root;
 
     /* useless */
@@ -82,7 +82,7 @@ logging_init(const char *filename, int is_trunc, logger_level_t default_level)
     root_logger.len_childs = 0;
 
     root_logger.filetype = _parse_logfile_type(filename); 
-    root_logger.filename = filename;
+    root_logger.filename = strdup(filename);
     if ( root_logger.filetype == logger_filetype_normal ){
         const char *mode = is_trunc ? "w" : "a";
         FILE *fd = fopen(filename, mode);
@@ -100,7 +100,8 @@ logging_init(const char *filename, int is_trunc, logger_level_t default_level)
 static void
 _destroy_subtree(logger_t *lg)
 {
-    /* logger_name_t is a rodata ... */
+    /* logger_name_t is always strduped */
+    free(lg->name);
 
     for ( size_t i = 0; i < lg->nchilds; i++ ){
         _destroy_subtree(lg->childs[i]);
@@ -108,10 +109,11 @@ _destroy_subtree(logger_t *lg)
     }
     if ( lg->len_childs ) free(lg->childs);
 
-    /* filename is also rodata */
     if ( lg->filetype == logger_filetype_normal ) {
         _decrese_logfile_ref_count(lg->filename);
     }
+    /* filename is always strduped */
+    free(lg->filename);
 }
 
 void
@@ -167,7 +169,7 @@ logger_t*
 _create_auto_logger(const char *name, logger_t *parent)
 {
     logger_t *lg = (logger_t*) malloc(sizeof(logger_t));
-    lg->name = name;
+    lg->name = strdup(name);
     lg->type = logger_type_auto;
     lg->ref_count = 1;
 
@@ -177,7 +179,7 @@ _create_auto_logger(const char *name, logger_t *parent)
     lg->nchilds = 0;
 
     lg->filetype = parent->filetype;
-    lg->filename = parent->filename;
+    lg->filename = strdup(parent->filename);
     lg->fd = parent->fd;
     lg->level = parent->level;
 
@@ -273,6 +275,8 @@ logging_giveup_logger(logger_t *lg)
 
     if ( lg->len_childs > 0 ) free(lg->childs);
     if ( lg->filetype == logger_filetype_normal ) _decrese_logfile_ref_count(lg->filename);
+    free(lg->name);
+    free(lg->filename);
     free(lg);
 }
 
@@ -295,7 +299,8 @@ _inform_subtree_output(logger_t *lg, logfile_withref_t *fwr, logfile_withref_t *
         if ( child->type == logger_type_self ) continue;
 
         child->filetype = lg->filetype;
-        child->filename = lg->filename;
+        free(child->filename);
+        child->filename = strdup(lg->filename);
         child->fd       = lg->fd;
 
         if ( fwr ) fwr->ref_count++;
@@ -361,7 +366,9 @@ logging_set_output(logger_t *lg, const char *filename, int is_trunc)
         }
     }
     lg->filetype = tp;
-    lg->filename = filename;
+    /* filename is always strduped, even if it is "#1" or "#2 */
+    free(lg->filename);
+    lg->filename = strdup(filename);
     if ( !oldfwr || oldfwr->ref_count > 0 ) _inform_subtree_output(lg, fwr, oldfwr);
     return;
 }
@@ -397,12 +404,6 @@ logging_log(logger_t *lg, logging_event_level_t elevel, const char *msg, ...)
 }
 
 #ifdef DEBUG
-static void
-_tree_structure_check()
-{
-
-}
-
 HashTable*
 logger_get_file_dict()
 {

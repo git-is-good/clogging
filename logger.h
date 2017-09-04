@@ -16,7 +16,7 @@
 #define logging_warning(lg, ...) logging_log(lg, logger_level_warning, ##__VA_ARGS__)
 #define logging_error(lg, ...)   logging_log(lg, logger_level_error, ##__VA_ARGS__)
 
-typedef const char *logger_name_t;
+typedef char *logger_name_t;
 
 typedef enum {
     logger_type_root,
@@ -59,7 +59,7 @@ typedef struct logger_s {
     size_t              nchilds;
     
     logger_filetype_t   filetype;
-    const char          *filename;
+    char                *filename;
     FILE                *fd;
     logger_level_t      level;
 } logger_t;
